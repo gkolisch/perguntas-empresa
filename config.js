@@ -14,9 +14,14 @@
    sem editar este arquivo, abrindo o site com:
        ?api=https://script.google.com/macros/s/..../exec
    (ela fica salva no navegador para as próximas visitas)
+
+   3) O campo "token" é um segredo compartilhado com o Code.gs.
+      Ele impede que estranhos gravem respostas no seu backend.
+      Precisa ser IGUAL nos dois arquivos.
    ============================================================ */
 
 window.APP_CONFIG = {
   apiUrl: "https://script.google.com/macros/s/AKfycbx3iX6kzYg6gUNwP0hV0CX6-Y6lGzmzKHxMyCoJVzXi7SzrD7KrRiyBUDk0m4DCpCQg/exec",
+  token: "b9afda70b857572f59f8775ecdb2a353",
   spreadsheetName: "Respostas"
 };

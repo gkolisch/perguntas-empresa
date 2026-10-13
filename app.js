@@ -55,6 +55,11 @@
   var userAnswers = { s1: null, s2: null };
   var uis = {};
   var mounts = {};
+  var SESSION_ID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  function apiToken() {
+    return (window.APP_CONFIG && window.APP_CONFIG.token) || "";
+  }
 
   /* ---------------- Matemática da distribuição ----------------
      Invariante: o + 5m + 19l = 200.000  (nunca ultrapassa o máximo)
@@ -141,11 +146,6 @@
           '<button type="button" class="preset" data-preset="default">Padrão</button>' +
           '<button type="button" class="preset" data-preset="equal">Média (todos iguais)</button>' +
         '</div>' +
-        '<div class="chips">' +
-          '<div class="chip"><span class="chip-k">Total alocado</span><span class="chip-v" data-chip="total">—</span></div>' +
-          '<div class="chip"><span class="chip-k">Média por pessoa</span><span class="chip-v" data-chip="avg">—</span></div>' +
-          '<div class="chip"><span class="chip-k">Dono ÷ base</span><span class="chip-v accent" data-chip="ratio">—</span></div>' +
-        '</div>' +
       '</div>';
 
     var org = mount.querySelector('[data-org="' + key + '"]');
@@ -157,12 +157,7 @@
       sliders: {},
       outs: {},
       presetDefault: mount.querySelector('[data-preset="default"]'),
-      presetEqual: mount.querySelector('[data-preset="equal"]'),
-      chip: {
-        total: mount.querySelector('[data-chip="total"]'),
-        avg: mount.querySelector('[data-chip="avg"]'),
-        ratio: mount.querySelector('[data-chip="ratio"]')
-      }
+      presetEqual: mount.querySelector('[data-preset="equal"]')
     };
     ["o", "m", "l"].forEach(function (t) {
       ui.sliders[t] = mount.querySelector('[data-slider="' + t + '"]');
@@ -220,14 +215,6 @@
     ui.outs.o.textContent = fmt(s.o);
     ui.outs.m.textContent = fmt(s.m);
     ui.outs.l.textContent = fmt(s.l);
-
-    ui.chip.total.textContent = fmt(sum(s));
-    ui.chip.avg.textContent = fmt(sum(s) / N_TOTAL);
-    if (s.l > 0.5) {
-      ui.chip.ratio.textContent = (s.o / s.l).toFixed(1).replace(".", ",") + "×";
-    } else {
-      ui.chip.ratio.textContent = "—";
-    }
 
     var isDefault = Math.round(s.o) === DEFAULTS.o && Math.round(s.m) === DEFAULTS.m && Math.round(s.l) === DEFAULTS.l;
     var isEqual = Math.abs(s.o - s.m) < 1 && Math.abs(s.m - s.l) < 1;
@@ -316,10 +303,12 @@
     try { return JSON.parse(localStorage.getItem(LS_RESPONSES) || "[]") || []; }
     catch (e) { return []; }
   }
-  function saveLocal(payload) {
+  function upsertLocal(rec) {
     try {
       var arr = readLocal();
-      arr.push(payload);
+      var idx = -1;
+      for (var i = 0; i < arr.length; i++) { if (arr[i] && arr[i].id === rec.id) { idx = i; break; } }
+      if (idx >= 0) { arr[idx] = Object.assign({}, arr[idx], rec); } else { arr.push(rec); }
       localStorage.setItem(LS_RESPONSES, JSON.stringify(arr));
     } catch (e) {}
   }
@@ -331,61 +320,66 @@
     el.className = "foot-status" + (cls ? " " + cls : "");
   }
 
-  function snapshot() {
-    return { s1: snap(scenarios.s1), s2: snap(scenarios.s2), ts: Date.now() };
-  }
-
   function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  function onSubmit() {
-    var url = apiUrl();
-    var payload = snapshot();
-    userAnswers.s1 = payload.s1;
-    userAnswers.s2 = payload.s2;
-    saveLocal(payload);
+  function baseRecord(done) {
+    return {
+      id: SESSION_ID,
+      token: apiToken(),
+      s1: userAnswers.s1 || snap(scenarios.s1),
+      s2: userAnswers.s2,
+      done: !!done,
+      ts: Date.now()
+    };
+  }
 
+  function persist(rec) {
+    upsertLocal(rec);
+    var url = apiUrl();
+    if (!url) { setStatus("Salvo neste navegador (modo local).", ""); return Promise.resolve(); }
+    setStatus("Enviando…", "");
+    return fetch(withParam(url, "action=add&data=" + encodeURIComponent(JSON.stringify(rec)) + "&t=" + Date.now()),
+      { mode: "no-cors", cache: "no-store" })
+      .then(function () { setStatus("Resposta enviada.", "ok"); })
+      .catch(function () { setStatus("Salvo neste navegador (servidor indisponível).", ""); });
+  }
+
+  function submitScreen1() {
+    userAnswers.s1 = snap(scenarios.s1);
+    return persist(baseRecord(false));
+  }
+
+  function submitScreen2() {
+    userAnswers.s2 = snap(scenarios.s2);
+    var p = persist(baseRecord(true));
     goTo(3);
     loadResults();
-
-    if (url) {
-      setStatus("Enviando para o servidor…", "");
-      fetch(withParam(url, "action=add&data=" + encodeURIComponent(JSON.stringify(payload)) + "&t=" + Date.now()),
-        { mode: "no-cors", cache: "no-store" })
-        .then(function () { setStatus("Resposta enviada.", "ok"); })
-        .catch(function () { setStatus("Salvo neste navegador (servidor indisponível).", ""); });
-    } else {
-      setStatus("Salvo neste navegador (modo local).", "");
-    }
+    return p;
   }
 
   /* ---------------- Estatísticas coletivas ---------------- */
-  function computeStats(arr) {
-    var acc = {
-      s1: { o: 0, m: 0, l: 0, srO: 0, srM: 0, rn: 0 },
-      s2: { o: 0, m: 0, l: 0, srO: 0, srM: 0, rn: 0 }
+  function blankTier() { return { o: 0, m: 0, l: 0, srO: 0, srM: 0, rn: 0 }; }
+  function addTier(a, v) {
+    var o = +v.o || 0, m = +v.m || 0, l = +v.l || 0;
+    a.o += o; a.m += m; a.l += l;
+    if (l > 0) { a.srO += o / l; a.srM += m / l; a.rn++; }
+  }
+  function reduceTier(a, n) {
+    return {
+      o: n ? a.o / n : 0,
+      m: n ? a.m / n : 0,
+      l: n ? a.l / n : 0,
+      ratioTopBase: a.rn ? a.srO / a.rn : 0,
+      ratioMidBase: a.rn ? a.srM / a.rn : 0
     };
-    var n = arr.length;
+  }
+  function computeStats(arr) {
+    var a1 = blankTier(), a2 = blankTier(), n1 = 0, n2 = 0;
     arr.forEach(function (rec) {
-      ["s1", "s2"].forEach(function (k) {
-        var v = rec[k] || {};
-        var o = +v.o || 0, m = +v.m || 0, l = +v.l || 0;
-        var a = acc[k];
-        a.o += o; a.m += m; a.l += l;
-        if (l > 0) { a.srO += o / l; a.srM += m / l; a.rn++; }
-      });
+      if (rec && rec.s1) { addTier(a1, rec.s1); n1++; }
+      if (rec && rec.s2) { addTier(a2, rec.s2); n2++; }
     });
-    var out = { count: n, s1: {}, s2: {} };
-    ["s1", "s2"].forEach(function (k) {
-      var a = acc[k];
-      out[k] = {
-        o: n ? a.o / n : 0,
-        m: n ? a.m / n : 0,
-        l: n ? a.l / n : 0,
-        ratioTopBase: a.rn ? a.srO / a.rn : 0,
-        ratioMidBase: a.rn ? a.srM / a.rn : 0
-      };
-    });
-    return out;
+    return { count: n2, started: n1, s1: reduceTier(a1, n1), s2: reduceTier(a2, n2) };
   }
   function localStats() { return computeStats(readLocal()); }
 
@@ -447,13 +441,19 @@
 
   function renderResults(box, stats) {
     var n = stats.count;
+    var started = stats.started || n;
+    var partial = started - n;
     var s1 = stats.s1, s2 = stats.s2;
     var html = "";
 
     html += '<div class="hero-stat">' +
       '<div class="hero-num">' + fmtInt.format(n) + '</div>' +
       '<div class="hero-label">' + (n === 1 ? "pessoa já respondeu" : "pessoas já responderam") +
-      ' as duas perguntas. <b>Os valores abaixo são médias</b> de todas as respostas.</div>' +
+      ' as duas perguntas.' +
+      (partial > 0
+        ? ' Outras <b>' + fmtInt.format(partial) + '</b> ' + (partial === 1 ? "começou" : "começaram") +
+          ' e ainda não concluiu a 2ª.' : '') +
+      ' <b>Os valores abaixo são médias</b> das respostas completas.</div>' +
       '</div>';
 
     html += '<h2 class="section-title">Salários médios nas duas situações</h2>';
@@ -507,7 +507,7 @@
     })
       .then(function (r) { if (!r.ok) { throw new Error("http " + r.status); } return r.json(); })
       .then(function (data) {
-        if (data && typeof data.count === "number" && data.count > 0) { renderResults(box, data); }
+        if (data && typeof data.count === "number" && (data.count > 0 || (data.started || 0) > 0)) { renderResults(box, data); }
         else { renderResults(box, localStats()); }
       })
       .catch(function () {
@@ -536,10 +536,17 @@
         var action = btn.dataset.action;
         if (action === "next") {
           var from = btn.dataset.from;
-          if (from === "1") { userAnswers.s1 = snap(scenarios.s1); goTo(2); }
-          else { onSubmit(); }
+          if (from === "1") { submitScreen1(); goTo(2); }
+          else { submitScreen2(); }
         } else if (action === "back") {
-          if (btn.dataset.to === "1") { goTo(1); }
+          if (btn.dataset.to === "1") {
+            scenarios.s1 = { o: DEFAULTS.o, m: DEFAULTS.m, l: DEFAULTS.l };
+            scenarios.s2 = { o: DEFAULTS.o, m: DEFAULTS.m, l: DEFAULTS.l };
+            userAnswers = { s1: null, s2: null };
+            updateScenario("s1");
+            updateScenario("s2");
+            goTo(1);
+          }
         }
       });
     });

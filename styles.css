@@ -298,15 +298,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px 
 .preset:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.3); background: var(--surface-2); }
 .preset.is-on { color: #1a1407; background: var(--accent); border-color: var(--accent); }
 
-.chips {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-  border-top: 1px solid var(--line); padding-top: 20px;
-}
-.chip { display: grid; gap: 3px; }
-.chip-k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); }
-.chip-v { font-size: clamp(15px, 2.2vw, 18px); font-weight: 600; font-variant-numeric: tabular-nums; }
-.chip-v.accent { color: var(--accent); }
-
 /* ---------------- Actions ---------------- */
 .action-row {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
@@ -466,7 +457,6 @@ table.compare .you { color: var(--accent); font-weight: 600; }
   .org-row + .org-row { margin-top: 22px; }
   .row-low .node { width: 40px; height: 50px; }
   .res-grid { grid-template-columns: 1fr; }
-  .chips { grid-template-columns: 1fr; gap: 14px; }
   .step span, .step { font-size: 11px; }
 }
 
