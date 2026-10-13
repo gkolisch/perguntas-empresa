@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folha &amp; Cargos — como você distribuiria?</title>
+  <meta name="description" content="Um experimento curto: como você distribuiria R$ 200.000 de folha de pagamento como dono e como funcionário mais baixo?" />
+  <meta name="theme-color" content="#0c0d10" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Folha &amp; Cargos</span>
+    </div>
+    <nav class="steps" aria-label="Progresso">
+      <span class="step" data-step="1"><i></i>1</span>
+      <span class="step-line" aria-hidden="true"></span>
+      <span class="step" data-step="2"><i></i>2</span>
+      <span class="step-line" aria-hidden="true"></span>
+      <span class="step" data-step="3"><i></i>3</span>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= TELA 1 ================= -->
+    <section class="screen is-active" id="screen-1" data-screen="1" aria-labelledby="title-1">
+      <div class="wrap">
+        <p class="eyebrow"><span class="eyebrow-num">01</span> Você é o dono</p>
+        <h1 class="headline" id="title-1">
+          Você acaba de ganhar uma empresa. Nela, por mês, tirando custos, caixa e
+          reinvestimento, sobra <mark>R$&nbsp;200.000,00</mark> para folha de pagamento.
+          Como você organiza a distribuição?
+        </h1>
+        <div class="mount" data-scenario="s1"></div>
+        <div class="action-row">
+          <button class="btn-primary" type="button" data-action="next" data-from="1">
+            Pronto
+            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+          <p class="action-hint">O valor é gravado e a próxima tela aparece.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TELA 2 ================= -->
+    <section class="screen" id="screen-2" data-screen="2" aria-labelledby="title-2" hidden>
+      <div class="wrap">
+        <p class="eyebrow"><span class="eyebrow-num">02</span> Você é o funcionário mais baixo</p>
+        <h1 class="headline" id="title-2">
+          Agora, mesma empresa, você é o funcionário mais baixo, e não vê possibilidade
+          de subir de cargo nos próximos anos. Como você organiza a distribuição de
+          <mark>remuneração</mark>?
+        </h1>
+        <div class="mount" data-scenario="s2"></div>
+        <div class="action-row">
+          <button class="btn-ghost" type="button" data-action="back" data-to="1">Voltar</button>
+          <button class="btn-primary" type="button" data-action="next" data-from="2">
+            Pronto
+            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TELA 3 ================= -->
+    <section class="screen" id="screen-3" data-screen="3" aria-labelledby="title-3" hidden>
+      <div class="wrap">
+        <p class="eyebrow"><span class="eyebrow-num">03</span> Resultado coletivo</p>
+        <h1 class="headline" id="title-3">Como as pessoas distribuem a mesma folha</h1>
+        <div id="results" class="results">
+          <div class="loader"><span></span><span></span><span></span></div>
+        </div>
+        <div class="action-row">
+          <button class="btn-ghost" type="button" data-action="back" data-to="1">Responder de novo</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Experimento anônimo sobre distribuição de remuneração.</span>
+    <span id="foot-status" class="foot-status"></span>
+  </footer>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
