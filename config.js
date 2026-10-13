@@ -17,6 +17,6 @@
    ============================================================ */
 
 window.APP_CONFIG = {
-  apiUrl: "",
+  apiUrl: "https://script.google.com/macros/s/AKfycbx3iX6kzYg6gUNwP0hV0CX6-Y6lGzmzKHxMyCoJVzXi7SzrD7KrRiyBUDk0m4DCpCQg/exec",
   spreadsheetName: "Respostas"
 };
